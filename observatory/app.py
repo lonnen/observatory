@@ -4,6 +4,7 @@ import os
 
 from flask import Flask
 
+from .base import base
 
 app = Flask("observatory")
 
