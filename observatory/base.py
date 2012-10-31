@@ -8,3 +8,7 @@ base = Blueprint("base", __name__)
 @base.route("/ping")
 def ping():
     return "pong"
+
+@base.route("/")
+def index():
+    return render_template('index.html')
