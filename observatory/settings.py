@@ -4,4 +4,5 @@ LOGGER_NAME = "observatory"
 
 ENVIRONMENTS = {
     # 'name': 'url'
+    'prod': 'https://crash-stats.mozilla.com/status/json'
 }

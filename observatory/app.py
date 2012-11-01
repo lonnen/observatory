@@ -1,12 +1,14 @@
+import json
 import logging
 import logging.config
 import os
 
-from flask import Flask
+from flask import Flask, current_app, json, request, Response, abort, render_template
 
-from .base import base
+from github import fetch_tags, fetch_tag
+from environments import fetch_environment, fetch_environments
 
-app = Flask("observatory")
+app = Flask(__name__)
 
 app.config.from_object("observatory.settings")
 
@@ -21,4 +23,9 @@ logger_name = app.config.get("LOGGER_NAME")
 if logger_name:
     logging.root.name = logger_name
 
-app.register_blueprint(base)
+@app.route("/")
+def index():
+    #return json.dumps(fetch_tags())
+    return json.dumps(fetch_environments())
+    #return json.dumps(fetch_environment('prod'))
+    #return render_template('index.html')
