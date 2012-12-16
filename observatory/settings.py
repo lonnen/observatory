@@ -2,8 +2,7 @@ DEBUG = False
 LOGGING_CONF = "logging.conf"
 LOGGER_NAME = "observatory"
 
-# this is a redis url "redis://localhost:6379"
-REDISTOGO_URL = ""
+REDISTOGO_URL = "redis://localhost:6379/"
 
 
 ENVIRONMENTS = {
