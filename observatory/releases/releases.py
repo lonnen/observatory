@@ -1,18 +1,50 @@
 import json
+from urlparse import urlparse
 
-from flask import Blueprint, abort, jsonify
+from flask import Blueprint, abort, current_app, jsonify, request
+from werkzeug.contrib.cache import RedisCache
+
 import requests
 
 releases = Blueprint('releases', __name__, template_folder="templates")
 
+
+@releases.before_request
+def return_cached():
+    config = current_app.config
+    redis_url = urlparse(config.get('REDISTOGO_URL', 'redis://localhost'))
+    cache = RedisCache(host=redis_url.hostname, port=redis_url.port,
+                       password=redis_url.password,
+                       default_timeout=config.get('CACHE_TIMEOUT', 300))
+    if not request.values:
+        response = cache.get(request.path)
+        if response:
+            return response
+
+
+@releases.after_request
+def cache_response(response):
+    config = current_app.config
+    redis_url = urlparse(config.get('REDISTOGO_URL', 'redis://localhost'))
+    cache = RedisCache(host=redis_url.hostname, port=redis_url.port,
+                       password=redis_url.password,
+                       default_timeout=config.get('CACHE_TIMEOUT', 300))
+    if not request.values:
+        cache.set(request.path, response)
+    return response
+
+
 @releases.route('/<name>')
-def release(name):  
+def release(name):
     ref = "refs/tags/v%s" % name
     tags = fetch_all_releases()
     for tag in tags:
         if tag['ref'] == ref:
-            return jsonify({'version': fetch_tag(tag['object']['sha'])})
-    return abort(404) # release name not found
+            try:
+                return jsonify(fetch_tag(tag['object']['sha']))
+            except KeyError:
+                return jsonify(tag)
+    return abort(404)  # release name not found
 
 
 @releases.route('/')
@@ -21,7 +53,7 @@ def released():
 
 
 def _fetch(endpoint):
-    """fetch the api endpoint and return the payload parsed into python objects
+    """fetch the api endpoint and return the payload parsed into python dicts
 
     endpoint - a url fragment to fetch
                ex: "/repose/mozilla/socorro/git/refs/tags"
@@ -32,41 +64,52 @@ def _fetch(endpoint):
         abort(424)
     return json.loads(response.text)
 
+
 def fetch_tags():
-    """fetch information about socorro tags from github"""
+    """Fetch information about socorro tags from Github
+
+    return a sorted list of tag dicts
+    """
     return sorted(_fetch('/git/refs/tags'), version_comparator)
 
+
 def fetch_all_releases():
-    """fetch all tags from github and fake two upcoming release tags"""
+    """Fetch all tags from github and fake two upcoming release tags
+
+    returns a list of tag dicts prepended with fake release tag-like dicts
+    """
     tags = fetch_tags()
     max_tag = get_version_tuple(tags[0])
     for _ in range(2):
-        max_tag = [int(max_tag[0]) + 1,] + max_tag[1:]
+        max_tag = [int(max_tag[0]) + 1, ] + max_tag[1:]
         _next = '.'.join(map(str, max_tag))
-        tags.insert(0, {
-            'tag': 'v'+_next,
-            'message': 'unreleased',
-            'ref': "refs/tags/v%s" % _next 
-        })
+        tags.insert(0, forge_tag(_next))
     return tags
 
+
 def fetch_tag(sha):
-    """fetch information about an individual tag from github"""
+    """Fetch information about an individual tag from Github
+
+    sha - sha of the git tag
+
+    return a dictionary with attributes of the tag object
+    """
     return _fetch('/git/tags/%s' % sha)
+
 
 def get_version_tuple(tag):
     """Parses a tag information into a version tuple
-    
+
     tag - github api v3 tag object
-            
+
     returns a tuple (major, [optional: minor], [optional: patch])
     """
-
     return tag['ref'].split('v')[-1].split('.')
+
 
 def version_comparator(tagX, tagY):
     """Socorro version comparator suitable for passting to `sorted()`
-    
+
     tagX - github api v3 tag object
     tagY - github api v3 tag object
 
@@ -86,3 +129,17 @@ def version_comparator(tagX, tagY):
             return -1
         q += 1
     return 0
+
+
+def forge_tag(version):
+    """Create a fake tag. Useful for future versions.
+
+    version - version number to fake
+
+    returns dictionary structured like a fake tag
+    """
+    return {
+        'tag': 'v%s' % version,
+        'message': 'unreleased',
+        'ref': "refs/tags/v%s" % version
+    }

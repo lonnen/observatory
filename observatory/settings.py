@@ -2,6 +2,9 @@ DEBUG = False
 LOGGING_CONF = "logging.conf"
 LOGGER_NAME = "observatory"
 
+REDISTOGO_URL = "redis://localhost:6379/"
+
+
 ENVIRONMENTS = {
     # 'name': 'url'
     'prod': 'https://crash-stats.mozilla.com/status/json',

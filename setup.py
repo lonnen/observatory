@@ -1,8 +1,9 @@
 import os
 import sys
-from setuptools import setup, find_packages
+from setuptools import setup
 
 VERSION = "0.0.1"
+
 
 def get_requirements():
     basedir = os.path.dirname(__file__)

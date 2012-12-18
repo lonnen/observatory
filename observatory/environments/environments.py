@@ -5,6 +5,7 @@ import requests
 
 environments = Blueprint('environments', __name__, template_folder="templates")
 
+
 @environments.route('/<environment>')
 def environ(environment='dev'):
     try:
@@ -15,6 +16,7 @@ def environ(environment='dev'):
         return jsonify({environment: json.loads(response.text)})
     except KeyError:
         abort(404)
+
 
 @environments.route('/')
 def environs():
