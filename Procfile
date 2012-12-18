@@ -1,1 +1,1 @@
-web: python observatory/scripts.py -p $PORT
+web: newrelic-admin run-program observatory/scripts.py -p $PORT
