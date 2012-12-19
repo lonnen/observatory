@@ -12,7 +12,7 @@ app.config.from_object("observatory.settings")
 
 for setting, value in app.config.iteritems():
     if setting in os.environ:
-        app.config[setting] = value
+        app.config[setting] = os.environ.get(setting, value)
 
 logging_conf = app.config.get("LOGGING_CONF")
 if logging_conf and os.path.exists(logging_conf):
