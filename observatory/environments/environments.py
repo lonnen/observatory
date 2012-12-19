@@ -20,4 +20,7 @@ def environ(environment='dev'):
 
 @environments.route('/')
 def environs():
-    return jsonify(current_app.config['ENVIRONMENTS'])
+    envs = {}
+    for env in current_app.config['ENVIRONMENTS'].keys():
+        envs.update(json.loads(environ(env).response[0]))
+    return jsonify(envs)
