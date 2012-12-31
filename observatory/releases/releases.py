@@ -2,40 +2,20 @@ import json
 from urlparse import urlparse
 
 from flask import Blueprint, abort, current_app, jsonify, request
-from werkzeug.contrib.cache import RedisCache
 
+import redis
 import requests
 
 releases = Blueprint('releases', __name__, template_folder="templates")
 
 
-@releases.before_request
-def return_cached():
-    config = current_app.config
-    redis_url = urlparse(config.get('REDISTOGO_URL', 'redis://localhost'))
-    cache = RedisCache(host=redis_url.hostname, port=redis_url.port,
-                       password=redis_url.password,
-                       default_timeout=config.get('CACHE_TIMEOUT', 300))
-    if not request.values:
-        response = cache.get(request.path)
-        if response:
-            return response
-
-
-@releases.after_request
-def cache_response(response):
-    config = current_app.config
-    redis_url = urlparse(config.get('REDISTOGO_URL', 'redis://localhost'))
-    cache = RedisCache(host=redis_url.hostname, port=redis_url.port,
-                       password=redis_url.password,
-                       default_timeout=config.get('CACHE_TIMEOUT', 300))
-    if not request.values:
-        cache.set(request.path, response)
-    return response
-
-
 @releases.route('/<name>')
 def release(name):
+    """fetch a json object with information about release `name`
+
+    name - a socorro version, with or without the leading v
+    """
+    name = name[1:] if name.startswith('v') else name
     ref = "refs/tags/v%s" % name
     tags = fetch_all_releases()
     for tag in tags:
@@ -44,7 +24,7 @@ def release(name):
                 return jsonify(fetch_tag(tag['object']['sha']))
             except KeyError:
                 return jsonify(tag)
-    return abort(404)  # release name not found
+    abort(404)  # release name not found
 
 
 @releases.route('/')
@@ -58,11 +38,25 @@ def _fetch(endpoint):
     endpoint - a url fragment to fetch
                ex: "/repose/mozilla/socorro/git/refs/tags"
     """
+    redis_url = urlparse(current_app.config.get('REDISTOGO_URL'))
+    r = redis.StrictRedis(host=redis_url.hostname, port=redis_url.port)
     url = 'https://api.github.com/repos/mozilla/socorro%s' % endpoint
-    response = requests.get(url)
-    if response.status_code is not 200:
-        abort(424)
-    return json.loads(response.text)
+
+    cached = json.loads(r.get(url)) if r.get(url) else {}
+
+    headers = {}
+    if 'Last-Modified' in cached:
+        headers = {'If-Modified-Since': cached['Last-Modified']}
+    response = requests.get(url, headers=headers)
+
+    if response.status_code == 304:
+        return cached['json']
+    if response.status_code == 200:
+        dump = json.dumps({'Last-Modified': response.headers['Last-Modified'],
+                           'json': response.json})
+        r.set(url, dump)
+        return response.json
+    abort(424)
 
 
 def fetch_tags():
