@@ -2,16 +2,42 @@
 {% block content %}
     <div id="releasedash">
         <header><h1>Socorro Release Dashboard</h1></header>
+        <section id="message" class="hidden">
+            <!-- display some optional message to the user -->
+        </section>
         <section>
             <h2>In Development</h2>
-            <ul id="branches">
-            </ul>
+            <table id="upcoming">
+                <thead>
+                    <tr>
+                        <td>Name</td>
+                        <td>Bugs</td>
+                        <td>Anticipated Freeze</td>
+                        <td>Anticipated Release</td>
+                        <td>Loaded On</td>
+                    </tr>
+                </thead>
+                <tbody>
+                </tbody>
+            </table>
         </section>
 
         <section>
             <h2>Releases</h2>
-            <ul id="releases">
-            </ul>
+            <table id="releases">
+                <thead>
+                    <tr>
+                        <td>Name</td>
+                        <td>Bugs</td>
+                        <td>Tags</td>
+                        <td>Anticipated Freeze</td>
+                        <td>Anticipated Release</td>
+                        <td>Loaded On</td>
+                    </tr>
+                </thead>
+                <tbody>
+                </tbody>
+            </table>
         </section>
 
         <footer><a href="https://github.com/Lonnen/Socorro/tree/gh-pages#" >source</a></footer>

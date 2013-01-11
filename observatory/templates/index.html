@@ -4,7 +4,8 @@
     <meta charset="utf-8" />
     <title>{% block title %}The Observatory{% endblock %}</title>
     {% block site_css %}
-        <link rel="stylesheet/css" type="text/css" href="{{ url_for('static', filename='app.css') }}">
+        <link rel="stylesheet" href="{{ url_for('static', filename='app.css') }}">
+        <link rel="stylesheet" href="{{ url_for('static', filename='normalize.css') }}">
     {% endblock %}
 </head>
 <body>
@@ -16,5 +17,6 @@
 <body>
 {% block site_js %}
     <script type="text/javascript" src="http://d3js.org/d3.v2.js"></script>
+    <script type="text/javascript" src="https://raw.github.com/janl/mustache.js/c09c7f54a3be7c9e65bef71948d922311b49c8d7/mustache.js"></script>
 {% endblock %}
 </html>

@@ -2,11 +2,22 @@ import json
 from urlparse import urlparse
 
 from flask import Blueprint, abort, current_app, jsonify, request
+from werkzeug.exceptions import HTTPException
 
 import redis
 import requests
 
 releases = Blueprint('releases', __name__, template_folder="templates")
+
+
+class FailedDependency(HTTPException):
+    code = 424
+    description = ("The request failed due to failure of a previous request.")
+    name = "Failed Dependency"
+    def get_response(self, environment):
+        resp = super(FailedDependency, self).get_response(environment)
+        resp.status = "%s %s" % (self.code, self.name.upper())
+        return resp
 
 
 @releases.route('/<name>')
@@ -24,11 +35,15 @@ def release(name):
                 return jsonify(fetch_tag(tag['object']['sha']))
             except KeyError:
                 return jsonify(tag)
-    abort(404)  # release name not found
+    raise FailedDependency # release name not found
 
 
 @releases.route('/')
 def released():
+    releases = []
+    for r in fetch_all_releases():
+        name = r['ref'].split('v')[1]
+        releases.append(json.loads(release(name).response[0]))
     return jsonify({'releases': fetch_all_releases()})
 
 
@@ -36,7 +51,7 @@ def _fetch(endpoint):
     """fetch the api endpoint and return the payload parsed into python dicts
 
     endpoint - a url fragment to fetch
-               ex: "/repose/mozilla/socorro/git/refs/tags"
+               ex: "/repos/mozilla/socorro/git/refs/tags"
     """
     redis_url = urlparse(current_app.config.get('REDISTOGO_URL'))
     r = redis.StrictRedis(host=redis_url.hostname, port=redis_url.port)
@@ -56,6 +71,7 @@ def _fetch(endpoint):
                            'json': response.json})
         r.set(url, dump)
         return response.json
+    #raise FailedDependency
     abort(424)
 
 
