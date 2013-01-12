@@ -23,13 +23,3 @@ logger_name = app.config.get("LOGGER_NAME")
 app.register_blueprint(environments, url_prefix='/api/environments')
 
 app.register_blueprint(releases, url_prefix='/api/releases')
-
-
-@app.route("/releases")
-def releases():
-    return render_template('releases.html')
-
-
-@app.route("/")
-def index():
-    return render_template('index.html')
