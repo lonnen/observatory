@@ -20,6 +20,6 @@ if logging_conf and os.path.exists(logging_conf):
 
 logger_name = app.config.get("LOGGER_NAME")
 
-app.register_blueprint(environments, url_prefix='/api/environments')
+app.register_blueprint(environments, url_prefix='/environments')
 
-app.register_blueprint(releases, url_prefix='/api/releases')
+app.register_blueprint(releases, url_prefix='/releases')
