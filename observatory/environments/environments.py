@@ -4,7 +4,10 @@ from urlparse import urlparse
 from flask import Blueprint, abort, current_app, jsonify, request
 from werkzeug.contrib.cache import RedisCache
 
+from observatory.exceptions import FailedDependency
+
 import requests
+
 
 environments = Blueprint('environments', __name__, template_folder="templates")
 
@@ -37,11 +40,7 @@ def cache_response(response):
 @environments.route('/<environment>')
 def environ(environment='dev'):
     try:
-        url = current_app.config['ENVIRONMENTS'][environment]
-        response = requests.get(url)
-        if response.status_code is not 200:
-            abort(424)
-        return jsonify({environment: json.loads(response.text)})
+        return jsonify(fetch_environ(environment))
     except KeyError:
         abort(404)
 
@@ -50,5 +49,25 @@ def environ(environment='dev'):
 def environs():
     envs = {}
     for env in current_app.config['ENVIRONMENTS'].keys():
-        envs.update(json.loads(environ(env).response[0]))
+        try:
+            envs.update(fetch_environ(env))
+        except FailedDependency, fd:
+            envs.update({env: fd.description})
     return jsonify(envs)
+
+
+def fetch_environ(environment):
+    """Fetches a single environment from a URL specified in the config
+
+    environment - a shorthand name specified in the config. ex: prod, stage
+
+    returns a json blob of information about the current status of the environment
+    
+    raises KeyError iff the environment is not in the configuration
+    raises FailedDependency iff the environment returns a non-200 response
+    """
+    url = current_app.config['ENVIRONMENTS'][environment]
+    response = requests.get(url)
+    if response.status_code is not 200:
+        raise FailedDependency("Github returned status code %s" % response.status_code)
+    return {environment: json.loads(response.text)}
