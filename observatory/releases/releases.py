@@ -6,6 +6,8 @@ from flask import Blueprint, abort, current_app, jsonify, request
 import redis
 import requests
 
+from observatory.exceptions import FailedDependency
+
 releases = Blueprint('releases', __name__, template_folder="templates")
 
 
