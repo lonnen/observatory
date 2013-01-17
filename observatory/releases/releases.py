@@ -1,5 +1,4 @@
 import json
-from urlparse import urlparse
 
 from flask import Blueprint, abort, current_app, jsonify, request
 
@@ -40,8 +39,7 @@ def _fetch(endpoint):
     endpoint - a url fragment to fetch
                ex: "/repose/mozilla/socorro/git/refs/tags"
     """
-    redis_url = urlparse(current_app.config.get('REDISTOGO_URL'))
-    r = redis.StrictRedis(host=redis_url.hostname, port=redis_url.port)
+    r = redis.StrictRedis.from_url(current_app.config.get('REDISTOGO_URL'))
     url = 'https://api.github.com/repos/mozilla/socorro%s' % endpoint
 
     cached = json.loads(r.get(url)) if r.get(url) else {}
