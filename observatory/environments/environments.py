@@ -2,10 +2,10 @@ import json
 
 from flask import Blueprint, abort, current_app, jsonify, request
 from werkzeug.contrib.cache import RedisCache
+from redis import Redis
+import requests
 
 from observatory.exceptions import FailedDependency
-
-import requests
 
 
 environments = Blueprint('environments', __name__, template_folder="templates")
@@ -13,7 +13,7 @@ environments = Blueprint('environments', __name__, template_folder="templates")
 
 @environments.before_request
 def return_cached():
-    cache = RedisCache.from_url(current_app.config.get('REDISTOGO_URL', 'redis://localhost'))
+    cache = RedisCache(Redis.from_url(current_app.config.get('REDISTOGO_URL')))
     if not request.values:
         response = cache.get(request.path)
         if response:
@@ -22,11 +22,7 @@ def return_cached():
 
 @environments.after_request
 def cache_response(response):
-    config = current_app.config
-    redis_url = urlparse(config.get('REDISTOGO_URL', 'redis://localhost'))
-    cache = RedisCache(host=redis_url.hostname, port=redis_url.port,
-                       password=redis_url.password,
-                       default_timeout=config.get('CACHE_TIMEOUT', 300))
+    cache = RedisCache(Redis.from_url(current_app.config.get('REDISTOGO_URL')))
     if not request.values:
         cache.set(request.path, response)
     return response

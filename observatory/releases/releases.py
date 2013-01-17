@@ -1,8 +1,7 @@
 import json
 
 from flask import Blueprint, abort, current_app, jsonify, request
-
-import redis
+from redis import Redis
 import requests
 
 from observatory.exceptions import FailedDependency
@@ -39,7 +38,7 @@ def _fetch(endpoint):
     endpoint - a url fragment to fetch
                ex: "/repose/mozilla/socorro/git/refs/tags"
     """
-    r = redis.StrictRedis.from_url(current_app.config.get('REDISTOGO_URL'))
+    r = Redis.from_url(current_app.config.get('REDISTOGO_URL'))
     url = 'https://api.github.com/repos/mozilla/socorro%s' % endpoint
 
     cached = json.loads(r.get(url)) if r.get(url) else {}
